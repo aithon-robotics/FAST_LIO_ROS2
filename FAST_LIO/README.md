@@ -1,3 +1,24 @@
+## Aithon Fork
+build with 
+```bash
+colcon build --symlink-install --packages-select fast_lio
+```
+If pcl_ros is missing:
+```bash
+sudo apt instal pcl-ros
+```
+
+launch with:
+```bash
+ros2 launch fast_lio mapping_mid360.launch.py
+```
+Rviz opens and shows odometry, path, and map
+
+______
+
+
+
+
 > Maintainer: Yunlong Feng
 
 ## Related Works and Extended Application
