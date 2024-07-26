@@ -5,7 +5,7 @@ colcon build --symlink-install --packages-select fast_lio
 ```
 If pcl_ros is missing:
 ```bash
-sudo apt instal pcl-ros
+sudo apt install ros-humble-pcl-ros
 ```
 
 launch with:
