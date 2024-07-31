@@ -23,16 +23,16 @@
             det_range:     200.0
             extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
             extrinsic_T: [ 0.05512, 0.02226, -0.0297 ]
-            extrinsic_R: [-1., 0., 0.,
+            extrinsic_R: [1., 0., 0.,
                           0., 1., 0.,
-                          0., 0., -1.]
+                          0., 0., 1.]
 
 
         publish:
-            path_en: true                # true: publish Path
-            scan_publish_en:  true       # false: close all the point cloud output
-            dense_publish_en: true       # false: low down the points number in a global-frame point clouds scan.
-            scan_bodyframe_pub_en: true  # true: output the point cloud scans in IMU-body-frame
+            path_en: false                # true: publish Path
+            scan_publish_en:  false       # false: close all the point cloud output
+            dense_publish_en: false       # false: low down the points number in a global-frame point clouds scan.
+            scan_bodyframe_pub_en: false  # true: output the point cloud scans in IMU-body-frame
 
         # when you use docker, you should enter the absolute path of in docker container
         map_file_path: "/root/ros2_ws/src/FAST_LIO/PCD/result.pcd" 
