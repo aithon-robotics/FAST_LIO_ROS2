@@ -21,6 +21,7 @@ def generate_launch_description():
     filter_size_map_param = LaunchConfiguration('filter_size_map', default='0.5')                 # double
     cube_side_length_param = LaunchConfiguration('cube_side_length', default='1000.0')            # double
     runtime_pos_log_enable_param = LaunchConfiguration('runtime_pos_log_enable', default='false')  # bool
+    blind_distance = LaunchConfiguration('preprocess.blind', default='0.9')  # double
 
     default_config_path = os.path.join(package_path, 'config', 'mid360.yaml')
     default_rviz_config_path = os.path.join(
@@ -60,7 +61,8 @@ def generate_launch_description():
                     'filter_size_surf': filter_size_surf_param,
                     'filter_size_map': filter_size_map_param,
                     'cube_side_length': cube_side_length_param,
-                    'runtime_pos_log_enable': runtime_pos_log_enable_param}],
+                    'runtime_pos_log_enable': runtime_pos_log_enable_param,
+                    'preprocess.blind': blind_distance}],
         output='screen'
     )
     # rviz_node = Node(
