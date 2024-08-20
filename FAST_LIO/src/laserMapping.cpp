@@ -891,6 +891,7 @@ public:
         this->get_parameter_or<string>("traj_save.traj_file_path", traj_file_path, "");
 
         RCLCPP_INFO(this->get_logger(), "p_pre->lidar_type %d", p_pre->lidar_type);
+        RCLCPP_INFO(this->get_logger(), "blind %f", p_pre->blind);
 
         path.header.stamp = this->get_clock()->now();
         path.header.frame_id ="camera_init";
