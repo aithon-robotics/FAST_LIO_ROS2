@@ -44,6 +44,7 @@
 #include <so3_math.h>
 #include <rclcpp/rclcpp.hpp>
 #include <Eigen/Core>
+#include <std_srvs/srv/set_bool.hpp>
 #include "IMU_Processing.hpp"
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
@@ -823,11 +824,20 @@ void save_trajectory(const std::string &traj_file) {
     }
 }
 
+void reset_lio_callback(const std::shared_ptr<std_srvs::srv::SetBool::Request> request, std::shared_ptr<std_srvs::srv::SetBool::Response> response)
+{
+    flg_first_scan = true;
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Reset LIO");
+    response->success = true;
+}
+
 class LaserMappingNode : public rclcpp::Node
 {
 public:
     LaserMappingNode(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) : Node("laser_mapping", options)
     {
+        this->reset_lio_service_ = this->create_service<std_srvs::srv::SetBool>("reset_LIO", &reset_lio_callback);
+
         this->declare_parameter<bool>("publish.path_en", true);
         this->declare_parameter<bool>("publish.scan_publish_en", true);
         this->declare_parameter<bool>("publish.dense_publish_en", true);
@@ -1152,6 +1162,7 @@ private:
     }
 
 private:
+    rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr reset_lio_service_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudFull_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudFull_body_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudEffect_;
