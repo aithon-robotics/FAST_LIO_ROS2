@@ -620,12 +620,21 @@ void set_posestamp(T & out)
     
 }
 
+void drift_warning(double x, double y, double z)
+{
+    if (x*x+y*y+z*z > 10000)
+    {
+        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Drift Warning: Total distance exceeds 100 meters! RESTART LIO");
+    }
+}
+
 void publish_odometry(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pubOdomAftMapped, std::unique_ptr<tf2_ros::TransformBroadcaster> & tf_br)
 {
     odomAftMapped.header.frame_id = "camera_init";
     odomAftMapped.child_frame_id = "body";
     odomAftMapped.header.stamp = get_ros_time(lidar_end_time);
     set_posestamp(odomAftMapped.pose);
+    drift_warning(odomAftMapped.pose.pose.position.x, odomAftMapped.pose.pose.position.y, odomAftMapped.pose.pose.position.z);
     pubOdomAftMapped->publish(odomAftMapped);
     auto P = kf.get_P();
     for (int i = 0; i < 6; i ++)
@@ -934,7 +943,7 @@ public:
             cout << "~~~~"<<ROOT_DIR<<" doesn't exist" << endl;
 
         /*** ROS subscribe initialization ***/
-        if (p_pre->lidar_type == AVIA)
+        if (p_pre->lidar_type == AVIA || p_pre->lidar_type == MID360)
         {
             sub_pcl_livox_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(lid_topic, 20, livox_pcl_cbk);
         }
