@@ -284,8 +284,18 @@ void lasermap_fov_segment()
     kdtree_delete_time = omp_get_wtime() - delete_begin;
 }
 
-void standard_pcl_cbk(const sensor_msgs::msg::PointCloud2::UniquePtr msg) 
+void standard_pcl_cbk(const sensor_msgs::msg::PointCloud2::UniquePtr msg)
 {
+    static double last_lidar_arrival = 0.0;
+    double now = omp_get_wtime();
+    if (last_lidar_arrival > 0.0)
+    {
+        double gap = now - last_lidar_arrival;
+        if (gap > 0.15)  // warn if > 150 ms between lidar frames
+            printf("[FASTLIO][LIDAR] arrival gap: %.1f ms\n", gap * 1e3);
+    }
+    last_lidar_arrival = now;
+
     mtx_buffer.lock();
     scan_count ++;
     double cur_time = get_time_sec(msg->header.stamp);
@@ -312,8 +322,18 @@ void standard_pcl_cbk(const sensor_msgs::msg::PointCloud2::UniquePtr msg)
 
 double timediff_lidar_wrt_imu = 0.0;
 bool   timediff_set_flg = false;
-void livox_pcl_cbk(const livox_ros_driver2::msg::CustomMsg::UniquePtr msg) 
+void livox_pcl_cbk(const livox_ros_driver2::msg::CustomMsg::UniquePtr msg)
 {
+    static double last_lidar_arrival = 0.0;
+    double now = omp_get_wtime();
+    if (last_lidar_arrival > 0.0)
+    {
+        double gap = now - last_lidar_arrival;
+        if (gap > 0.15)
+            printf("[FASTLIO][LIDAR] arrival gap: %.1f ms\n", gap * 1e3);
+    }
+    last_lidar_arrival = now;
+
     mtx_buffer.lock();
     double cur_time = get_time_sec(msg->header.stamp);
     double preprocess_start_time = omp_get_wtime();
@@ -353,6 +373,16 @@ void livox_pcl_cbk(const livox_ros_driver2::msg::CustomMsg::UniquePtr msg)
 
 void imu_cbk(const sensor_msgs::msg::Imu::UniquePtr msg_in)
 {
+    static double last_imu_arrival = 0.0;
+    double now = omp_get_wtime();
+    if (last_imu_arrival > 0.0)
+    {
+        double gap = now - last_imu_arrival;
+        if (gap > 0.02)  // warn if > 20 ms between IMU messages (~50 Hz expected minimum)
+            printf("[FASTLIO][IMU  ] arrival gap: %.1f ms\n", gap * 1e3);
+    }
+    last_imu_arrival = now;
+
     publish_count ++;
     // cout<<"IMU got at: "<<msg_in->header.stamp.toSec()<<endl;
     sensor_msgs::msg::Imu::SharedPtr msg(new sensor_msgs::msg::Imu(*msg_in));

@@ -10,7 +10,7 @@
         preprocess:
             lidar_type: 6                # 6 for RoboSense Fairy96 (rslidar XYZIRT: ring + timestamp in seconds)
             scan_line:  48 #96
-            blind: 2.0
+            blind: 1.0
             timestamp_unit: 0            # 0: seconds
             scan_rate: 10
 
