@@ -2,14 +2,14 @@
     ros__parameters:
         common:
             lid_topic:  "/rslidar_points"
-            imu_topic:  "/rslidar_imu_data"
+            imu_topic:  "/livox/imu"
             time_sync_en: false         # ONLY turn on when external time synchronization is really not possible
             time_offset_lidar_to_imu: 0.0 # Time offset between lidar and IMU calibrated by other algorithms, e.g. LI-Init (can be found in README).
                                         # This param will take effect no matter what time_sync_en is. So if the time offset is not known exactly, please set as 0.0
 
         preprocess:
             lidar_type: 6                # 6 for RoboSense Fairy96 (rslidar XYZIRT: ring + timestamp in seconds)
-            scan_line:  48 #96
+            scan_line:  96
             blind: 2.0
             timestamp_unit: 0            # 0: seconds
             scan_rate: 10
@@ -22,10 +22,10 @@
             fov_degree:    360.0
             det_range:     200.0
             extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
-            extrinsic_T: [ 0.0, 0.0, 0.0 ]
-            extrinsic_R: [1., 0., 0.,
-                          0., 1., 0.,
-                          0., 0., 1.]
+            extrinsic_T: [-0.387, -0.4, -0.291]    
+            extrinsic_R: [ 0.0, -0.707, -0.707,
+                          -1.0,  0.0, 0.0,
+                           0.0, 0.707, -0.707]  
 
 
         publish:

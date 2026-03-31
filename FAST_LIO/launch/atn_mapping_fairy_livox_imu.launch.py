@@ -23,7 +23,7 @@ def generate_launch_description():
     runtime_pos_log_enable_param = LaunchConfiguration('runtime_pos_log_enable', default='false')  # bool
     blind_distance = LaunchConfiguration('preprocess.blind', default='0.9')  # double
 
-    default_config_path = os.path.join(package_path, 'config', 'fairy.yaml')
+    default_config_path = os.path.join(package_path, 'config', 'fairy_livox_imu.yaml')
     default_rviz_config_path = os.path.join(
         package_path, 'rviz_cfg', 'fastlio.rviz')
 
@@ -70,7 +70,8 @@ def generate_launch_description():
     static_tf_node = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments=['0.5', '0.5', '0.1', '0', '0', '-0.785', 'world', 'rslio_camera_init'],
+        # arguments=['0.5', '0.5', '0.1', '0', '0', '-0.785', 'world', 'rslio_camera_init'],
+        arguments=['0', '0', '0', '0', '0', '3.1415', 'world', 'rslio_camera_init'],
     )
 
     static_tf_lidar_body_node = Node(
