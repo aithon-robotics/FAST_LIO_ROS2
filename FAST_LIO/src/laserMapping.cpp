@@ -67,8 +67,8 @@
 #define LASER_POINT_COV     (0.001)
 #define MAXN                (720000)
 #define PUBFRAME_PERIOD     (20)
-#define CAMERA_INIT_FRAME_ID   ("rslio_camera_init")
-#define BODY_FRAME_ID           ("rslio_lidar")
+string camera_init_frame_id = "camera_init";
+string body_frame_id        = "body";
 
 /*** Time Log Variables ***/
 double kdtree_incremental_time = 0.0, kdtree_search_time = 0.0, kdtree_delete_time = 0.0;
@@ -539,7 +539,7 @@ void publish_frame_world(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::Share
         pcl::toROSMsg(*laserCloudWorld, laserCloudmsg);
         // laserCloudmsg.header.stamp = ros::Time().fromSec(lidar_end_time);
         laserCloudmsg.header.stamp = get_ros_time(lidar_end_time);
-        laserCloudmsg.header.frame_id = CAMERA_INIT_FRAME_ID;
+        laserCloudmsg.header.frame_id = camera_init_frame_id;
         pubLaserCloudFull->publish(laserCloudmsg);
         publish_count -= PUBFRAME_PERIOD;
     }
@@ -591,7 +591,7 @@ void publish_frame_body(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::Shared
     sensor_msgs::msg::PointCloud2 laserCloudmsg;
     pcl::toROSMsg(*laserCloudIMUBody, laserCloudmsg);
     laserCloudmsg.header.stamp = get_ros_time(lidar_end_time);
-    laserCloudmsg.header.frame_id = BODY_FRAME_ID;
+    laserCloudmsg.header.frame_id = body_frame_id;
     pubLaserCloudFull_body->publish(laserCloudmsg);
     publish_count -= PUBFRAME_PERIOD;
 }
@@ -608,7 +608,7 @@ void publish_effect_world(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::Shar
     sensor_msgs::msg::PointCloud2 laserCloudFullRes3;
     pcl::toROSMsg(*laserCloudWorld, laserCloudFullRes3);
     laserCloudFullRes3.header.stamp = get_ros_time(lidar_end_time);
-    laserCloudFullRes3.header.frame_id = CAMERA_INIT_FRAME_ID;
+    laserCloudFullRes3.header.frame_id = camera_init_frame_id;
     pubLaserCloudEffect->publish(laserCloudFullRes3);
 }
 
@@ -629,7 +629,7 @@ void publish_map(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub
     sensor_msgs::msg::PointCloud2 laserCloudmsg;
     pcl::toROSMsg(*pcl_wait_pub, laserCloudmsg);
     laserCloudmsg.header.stamp = get_ros_time(lidar_end_time);
-    laserCloudmsg.header.frame_id = CAMERA_INIT_FRAME_ID;
+    laserCloudmsg.header.frame_id = camera_init_frame_id;
     pubLaserCloudMap->publish(laserCloudmsg);
 }
 
@@ -662,8 +662,8 @@ void drift_warning(double x, double y, double z)
 
 void publish_odometry(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pubOdomAftMapped, std::unique_ptr<tf2_ros::TransformBroadcaster> & tf_br)
 {
-    odomAftMapped.header.frame_id = CAMERA_INIT_FRAME_ID;
-    odomAftMapped.child_frame_id = BODY_FRAME_ID;
+    odomAftMapped.header.frame_id = camera_init_frame_id;
+    odomAftMapped.child_frame_id = body_frame_id;
     odomAftMapped.header.stamp = get_ros_time(lidar_end_time);
     set_posestamp(odomAftMapped.pose);
     drift_warning(odomAftMapped.pose.pose.position.x, odomAftMapped.pose.pose.position.y, odomAftMapped.pose.pose.position.z);
@@ -681,8 +681,8 @@ void publish_odometry(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPt
     }
 
     geometry_msgs::msg::TransformStamped trans;
-    trans.header.frame_id = CAMERA_INIT_FRAME_ID;
-    trans.child_frame_id = BODY_FRAME_ID;
+    trans.header.frame_id = camera_init_frame_id;
+    trans.child_frame_id = body_frame_id;
     trans.transform.translation.x = odomAftMapped.pose.pose.position.x;
     trans.transform.translation.y = odomAftMapped.pose.pose.position.y;
     trans.transform.translation.z = odomAftMapped.pose.pose.position.z;
@@ -697,7 +697,7 @@ void publish_path(rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pubPath)
 {
     set_posestamp(msg_body_pose);
     msg_body_pose.header.stamp = get_ros_time(lidar_end_time); // ros::Time().fromSec(lidar_end_time);
-    msg_body_pose.header.frame_id = CAMERA_INIT_FRAME_ID;
+    msg_body_pose.header.frame_id = camera_init_frame_id;
 
     /*** if path is too large, the rvis will crash ***/
     static int jjj = 0;
@@ -860,6 +860,7 @@ class LaserMappingNode : public rclcpp::Node
 public:
     LaserMappingNode(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) : Node("laser_mapping", options)
     {
+        this->declare_parameter<string>("output_prefix", "");
         this->declare_parameter<bool>("publish.path_en", true);
         this->declare_parameter<bool>("publish.scan_publish_en", true);
         this->declare_parameter<bool>("publish.dense_publish_en", true);
@@ -931,11 +932,17 @@ public:
         this->get_parameter_or<bool>("traj_save.traj_save_en", traj_save_en, false);
         this->get_parameter_or<string>("traj_save.traj_file_path", traj_file_path, "");
 
+        string output_prefix;
+        this->get_parameter_or<string>("output_prefix", output_prefix, "");
+        string topic_prefix = output_prefix.empty() ? "/" : "/" + output_prefix + "/";
+        camera_init_frame_id = output_prefix.empty() ? "camera_init" : output_prefix + "_camera_init";
+        body_frame_id        = output_prefix.empty() ? "lidar"        : output_prefix + "_lidar";
+
         RCLCPP_INFO(this->get_logger(), "p_pre->lidar_type %d", p_pre->lidar_type);
         RCLCPP_INFO(this->get_logger(), "blind %f", p_pre->blind);
 
         path.header.stamp = this->get_clock()->now();
-        path.header.frame_id =CAMERA_INIT_FRAME_ID;
+        path.header.frame_id =camera_init_frame_id;
 
         FOV_DEG = (fov_deg + 10.0) > 179.9 ? 179.9 : (fov_deg + 10.0);
         HALF_FOV_COS = cos((FOV_DEG) * 0.5 * PI_M / 180.0);
@@ -984,15 +991,15 @@ public:
             sub_pcl_pc_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(lid_topic, 1, standard_pcl_cbk);
         }
         sub_imu_ = this->create_subscription<sensor_msgs::msg::Imu>(imu_topic, 10, imu_cbk);
-        pubLaserCloudFull_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_registered", 20);
-        pubLaserCloudFull_body_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_registered_body", 20);
-        pubLaserCloudEffect_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_effected", 20);
-        pubLaserCloudMap_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/Laser_map", 20);
-        pubOdomAftMapped_ = this->create_publisher<nav_msgs::msg::Odometry>("/rslio/Odometry", 20);
-        pubPath_ = this->create_publisher<nav_msgs::msg::Path>("/path", 20);
+        pubLaserCloudFull_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(topic_prefix + "cloud_registered", 20);
+        pubLaserCloudFull_body_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(topic_prefix + "cloud_registered_body", 20);
+        pubLaserCloudEffect_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(topic_prefix + "cloud_effected", 20);
+        pubLaserCloudMap_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(topic_prefix + "Laser_map", 20);
+        pubOdomAftMapped_ = this->create_publisher<nav_msgs::msg::Odometry>(topic_prefix + "Odometry", 20);
+        pubPath_ = this->create_publisher<nav_msgs::msg::Path>(topic_prefix + "path", 20);
         tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
-        //------------------------------------------------------------------------------------------------------
+        //--------------------------------------------------------------------------------------------aaj----------
         auto period_ms = std::chrono::milliseconds(static_cast<int64_t>(1000.0 / 1000.0));  // 1ms
         timer_ = rclcpp::create_timer(this, this->get_clock(), period_ms, std::bind(&LaserMappingNode::timer_callback, this));
 

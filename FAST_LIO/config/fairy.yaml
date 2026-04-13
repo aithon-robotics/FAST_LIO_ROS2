@@ -1,5 +1,7 @@
 /**:
     ros__parameters:
+        output_prefix: "rslio"   # Prefix for all output topics (/<prefix>/...) and frame IDs (<prefix>_camera_init, <prefix>_lidar)
+
         common:
             lid_topic:  "/rslidar_points"
             imu_topic:  "/rslidar_imu_data"
