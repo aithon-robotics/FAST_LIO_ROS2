@@ -41,6 +41,7 @@
 #include <csignal>
 #include <chrono>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <Python.h>
 #include <so3_math.h>
 #include <rclcpp/rclcpp.hpp>
@@ -628,27 +629,48 @@ void publish_map(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub
 {
     PointCloudXYZI::Ptr laserCloudFullRes(dense_pub_en ? feats_undistort : feats_down_body);
     int size = laserCloudFullRes->points.size();
-    PointCloudXYZI::Ptr laserCloudWorld( \
-                    new PointCloudXYZI(size, 1));
+    PointCloudXYZI::Ptr laserCloudWorld(new PointCloudXYZI(size, 1));
 
     for (int i = 0; i < size; i++)
-    {
-        RGBpointBodyToWorld(&laserCloudFullRes->points[i], \
-                            &laserCloudWorld->points[i]);
-    }
-    *pcl_wait_pub += *laserCloudWorld;
+        RGBpointBodyToWorld(&laserCloudFullRes->points[i], &laserCloudWorld->points[i]);
 
     sensor_msgs::msg::PointCloud2 laserCloudmsg;
-    pcl::toROSMsg(*pcl_wait_pub, laserCloudmsg);
+    pcl::toROSMsg(*laserCloudWorld, laserCloudmsg);
     laserCloudmsg.header.stamp = get_ros_time(lidar_end_time);
     laserCloudmsg.header.frame_id = camera_init_frame_id;
     pubLaserCloudMap->publish(laserCloudmsg);
 }
 
+std::string insert_timestamp(const std::string &base_path)
+{
+    auto now = std::chrono::system_clock::now();
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+    char buf[32];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d_%H-%M-%S", std::localtime(&t));
+
+    auto dot = base_path.rfind('.');
+    if (dot != std::string::npos)
+        return base_path.substr(0, dot) + "_" + buf + base_path.substr(dot);
+    return base_path + "_" + buf;
+}
+
+std::string make_timestamped_pcd_path()
+{
+    return insert_timestamp(map_file_path);
+}
+
 void save_to_pcd()
 {
+    PointVector().swap(ikdtree.PCL_Storage);
+    ikdtree.flatten(ikdtree.Root_Node, ikdtree.PCL_Storage, NOT_RECORD);
+    PointCloudXYZI::Ptr map_cloud(new PointCloudXYZI());
+    map_cloud->points = ikdtree.PCL_Storage;
+    std::string path = make_timestamped_pcd_path();
     pcl::PCDWriter pcd_writer;
-    pcd_writer.writeBinary(map_file_path, *pcl_wait_pub);
+    pcd_writer.writeBinary(path, *map_cloud);
+    struct stat st;
+    double mb = (stat(path.c_str(), &st) == 0) ? st.st_size / 1.0e6 : -1.0;
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Map saved: %s  (%zu pts, %.1f MB)", path.c_str(), map_cloud->size(), mb);
 }
 
 template<typename T>
@@ -1199,18 +1221,17 @@ private:
 
     void map_save_callback(std_srvs::srv::Trigger::Request::ConstSharedPtr req, std_srvs::srv::Trigger::Response::SharedPtr res)
     {
-        RCLCPP_INFO(this->get_logger(), "Saving map to %s...", map_file_path.c_str());
-        if (pcd_save_en)
-        {
-            save_to_pcd();
-            res->success = true;
-            res->message = "Map saved.";
-        }
-        else
+        if (map_file_path.empty())
         {
             res->success = false;
-            res->message = "Map save disabled.";
+            res->message = "map_file_path not set in config.";
+            return;
         }
+        std::string path = make_timestamped_pcd_path();
+        RCLCPP_INFO(this->get_logger(), "Saving map to %s...", path.c_str());
+        save_to_pcd();
+        res->success = true;
+        res->message = "Map saved to " + path;
     }
 
 private:
@@ -1258,17 +1279,17 @@ int main(int argc, char** argv)
 
     /**************** save trajectory ****************/
     if(traj_save_en){
-        save_trajectory(traj_file_path);
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Save FAST-LIO2 trajectory !!");
+        std::string traj_path = insert_timestamp(traj_file_path);
+        save_trajectory(traj_path);
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Trajectory saved: %s", traj_path.c_str());
     }
 
     /**************** save map ****************/
-    /* Make sure you have enough memories to save the map */
-    if (pcl_wait_save->size() > 0 && pcd_save_en)
+    if (pcd_save_en && !map_file_path.empty())
     {
-        pcl::PCDWriter pcd_writer;
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "current scan saved to %s", map_file_path.c_str());
-        pcd_writer.writeBinary(map_file_path, *pcl_wait_save);
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Saving map to %s...", map_file_path.c_str());
+        save_to_pcd();
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Map saved.");
     }
     
     /**************** save runtime log ****************/

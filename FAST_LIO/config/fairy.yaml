@@ -12,7 +12,7 @@
         preprocess:
             lidar_type: 6                # 6 for RoboSense Fairy96 (rslidar XYZIRT: ring + timestamp in seconds)
             scan_line:  48 #96
-            blind: 1.0
+            blind: 2.0
             timestamp_unit: 0            # 0: seconds
             scan_rate: 10
 
@@ -36,13 +36,12 @@
             dense_publish_en: false       # false: low down the points number in a global-frame point clouds scan.
             scan_bodyframe_pub_en: false  # true: output the point cloud scans in IMU-body-frame
 
-        # when you use docker, you should enter the absolute path of in docker container
-        map_file_path: "/root/ros2_ws/src/FAST_LIO/PCD/result.pcd" 
+        map_file_path: "/home/atn/maps/fast_lio_map.pcd"
         pcd_save:
-            pcd_save_en: false
-            interval: -1                 # how many LiDAR frames saved in each pcd file; 
+            pcd_save_en: true            # save map to map_file_path on exit (timestamped filename)
+            interval: -1                 # how many LiDAR frames saved in each pcd file;
                                         # -1 : all frames will be saved in ONE pcd file, may lead to memory crash when having too much frames.
-        
+
         traj_save:
-            traj_save_en: false
-            traj_file_path: "/root/ros2_ws/src/FAST_LIO/traj/trajectory.txt" # when you use docker, you should enter the absolute path of in docker container
+            traj_save_en: true
+            traj_file_path: "/home/atn/maps/traj/trajectory.txt"
