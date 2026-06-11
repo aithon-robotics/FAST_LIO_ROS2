@@ -384,7 +384,7 @@ void imu_cbk(const sensor_msgs::msg::Imu::UniquePtr msg_in)
     {
         double wall_gap = now - last_imu_arrival;
         double stamp_gap = stamp - last_imu_stamp;
-        if (wall_gap > 0.04)
+        if (wall_gap > 0.02)
             // wall_gap >> stamp_gap → executor starvation (timer_callback blocked the thread)
             // wall_gap ≈ stamp_gap → upstream dropout (IMU driver or publisher dropped packets)
             RCLCPP_WARN(rclcpp::get_logger("rclcpp"),
