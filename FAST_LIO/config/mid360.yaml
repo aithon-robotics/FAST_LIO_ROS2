@@ -22,10 +22,11 @@
             fov_degree:    360.0
             det_range:     200.0
             extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
+            # IMU is co-located inside the MID360 — identity rotation, small translation.
             extrinsic_T: [ 0.05512, 0.02226, -0.0297 ]
-            extrinsic_R: [1., 0., 0.,
-                          0., 1., 0.,
-                          0., 0., 1.]
+            extrinsic_R: [ 1., 0., 0.,
+                           0., 1., 0.,
+                           0., 0., 1.]
 
 
         publish:
