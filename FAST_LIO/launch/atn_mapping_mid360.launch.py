@@ -65,12 +65,12 @@ def generate_launch_description():
                     'preprocess.blind': blind_distance}],
         output='screen'
     )
-    # rviz_node = Node(
-    #     package='rviz2',
-    #     executable='rviz2',
-    #     arguments=['-d', rviz_cfg],
-    #     condition=IfCondition(rviz_use)
-    # )
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        arguments=['-d', rviz_cfg],
+        condition=IfCondition(rviz_use)
+    )
 
     ld = LaunchDescription()
     ld.add_action(declare_use_sim_time_cmd)
@@ -78,38 +78,7 @@ def generate_launch_description():
     ld.add_action(declare_rviz_cmd)
     ld.add_action(declare_rviz_config_path_cmd)
 
-    # All TFs specific to the MID360 upside-down mount on the Hummel drone.
-    # FAST-LIO world frame 'camera_init' is NED-like (initialized from upside-down IMU).
-    # FAST-LIO body frame 'body' is FRD (IMU axes, also upside-down).
-    #
-    # odom (ENU) -> camera_init: 180 deg roll, qx=1 qy=0 qz=0 qw=0
-    tf_odom_to_camera_init = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='tf_odom_to_camera_init',
-        arguments=['0', '0', '0', '1', '0', '0', '0', 'odom', 'camera_init'],
-    )
-
-    # body (FRD) -> base_link (FLU): 180 deg roll, qx=1 qy=0 qz=0 qw=0
-    tf_body_to_base_link = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='tf_body_to_base_link',
-        arguments=['0', '0', '0', '1', '0', '0', '0', 'body', 'base_link'],
-    )
-
-    # body (FRD) -> fmu/base_link (FRD): identity
-    tf_body_to_fmu = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='tf_body_to_fmu_base_link',
-        arguments=['0', '0', '0', '0', '0', '0', '1', 'body', 'fmu/base_link'],
-    )
-
     ld.add_action(fast_lio_node)
-    ld.add_action(tf_odom_to_camera_init)
-    ld.add_action(tf_body_to_base_link)
-    ld.add_action(tf_body_to_fmu)
     # ld.add_action(rviz_node)
 
     return ld
