@@ -17,8 +17,9 @@ enum LID_TYPE
   VELO16,
   OUST64,
   MID360,
-  HESAI
-};  //{1, 2, 3}
+  HESAI,
+  RSFAIRY
+};  //{1, 2, 3, 4, 5, 6}
 enum TIME_UNIT
 {
   SEC = 0,
@@ -150,6 +151,24 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(hesai_ros::Point,
     (std::uint16_t, ring, ring)
 )
 
+namespace rslidar_ros {
+  struct EIGEN_ALIGN16 Point {
+      PCL_ADD_POINT4D;
+      float intensity;
+      std::uint16_t ring;
+      double timestamp;
+      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  };
+}  // namespace rslidar_ros
+POINT_CLOUD_REGISTER_POINT_STRUCT(rslidar_ros::Point,
+    (float, x, x)
+    (float, y, y)
+    (float, z, z)
+    (float, intensity, intensity)
+    (std::uint16_t, ring, ring)
+    (double, timestamp, timestamp)
+)
+
 class Preprocess
 {
   public:
@@ -176,6 +195,7 @@ private:
   void avia_handler(const livox_ros_driver2::msg::CustomMsg::UniquePtr &msg);
   void oust64_handler(const sensor_msgs::msg::PointCloud2::UniquePtr &msg);
   void hesai_handler(const sensor_msgs::msg::PointCloud2::UniquePtr &msg);
+  void fairy_handler(const sensor_msgs::msg::PointCloud2::UniquePtr &msg);
   void velodyne_handler(const sensor_msgs::msg::PointCloud2::UniquePtr &msg);
   void mid360_handler(const livox_ros_driver2::msg::CustomMsg::UniquePtr &msg);
   void default_handler(const sensor_msgs::msg::PointCloud2::UniquePtr &msg);
