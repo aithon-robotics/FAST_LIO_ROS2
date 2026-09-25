@@ -67,18 +67,11 @@ def generate_launch_description():
         namespace='rslio',
 
     )
-    static_tf_node = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        arguments=['0.5', '0.5', '0.1', '0', '0', '-0.785', 'world', 'rslio_camera_init'],
-    )
-
-    static_tf_lidar_body_node = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        # lidar in body frame x front, z up: x= ,y=-0.4129, yaw=90deg pitch=0 roll=-45deg
-        arguments=['-0.5', '-0.4', '-0.4', '-1.5708', '0.7854', '0', 'rslio_lidar', 'rslio_body'],
-    )
+    # No static TF for rslio_camera_init/rslio_lidar here anymore — the base_link/
+    # fmu_base_link mount correction (Fairy: yaw +90deg, roll -45deg from base_link,
+    # 28cm back / 24cm up) lives in atn_startup's
+    # state_estimation_robosense_fastlio.launch.py, parented on "rslio_lidar" (the
+    # frame this node actually publishes per laserMapping.cpp's output_prefix logic).
 
     rviz_node = Node(
         package='rviz2',
@@ -94,8 +87,6 @@ def generate_launch_description():
     ld.add_action(declare_rviz_config_path_cmd)
 
     ld.add_action(fast_lio_node)
-    ld.add_action(static_tf_node)
-    ld.add_action(static_tf_lidar_body_node)
     # ld.add_action(rviz_node)
 
     return ld
