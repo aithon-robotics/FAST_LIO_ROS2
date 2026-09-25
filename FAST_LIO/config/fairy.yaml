@@ -24,10 +24,10 @@
             fov_degree:    360.0
             det_range:     200.0
             extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
-            extrinsic_T: [ 0.0, 0.0, 0.0 ]
-            extrinsic_R: [1., 0., 0.,
-                          0., 1., 0.,
-                          0., 0., 1.]
+            extrinsic_T: [ -0.013567, -0.007979, -0.004895 ]   # lidar pose in the IMU frame (FAST-LIO convention); inverse of the Fairy factory IMU offset (DIFOP) = rslidar imu entry of the atn_hummel_description mount profiles. rslidar_sdk publishes the IMU raw (no calibration applied).
+            extrinsic_R: [ 0.999946, -0.010368, -0.000194,
+                          0.010368,  0.99994,   0.003519,
+                          0.000158, -0.003521,  0.999994 ]
 
 
         publish:
