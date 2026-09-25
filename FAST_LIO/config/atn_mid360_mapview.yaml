@@ -27,7 +27,7 @@
             det_range:     200.0
             extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
             # IMU is co-located inside the MID360 — identity rotation, small translation.
-            extrinsic_T: [ 0.05512, 0.02226, -0.0297 ]
+            extrinsic_T: [ -0.011, -0.02329, 0.04412 ]   # lidar position in the IMU frame (FAST-LIO convention, see laserMapping.cpp: pos_lid = pos + rot*offset_T_L_I). Livox MID360 manual: IMU at (0.011, 0.02329, -0.04412) m in the lidar frame -> inverted here; same value as hku-mars/FAST_LIO config/mid360.yaml
             extrinsic_R: [ 1., 0., 0.,
                            0., 1., 0.,
                            0., 0., 1.]
