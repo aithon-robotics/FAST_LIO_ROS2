@@ -482,7 +482,7 @@ bool sync_packages(MeasureGroup &meas)
 }
 
 int process_increments = 0;
-void map_incremental()
+void map_incremental(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubMapIncrement)
 {
     PointVector PointToAdd;
     PointVector PointNoNeedDownsample;
@@ -524,9 +524,33 @@ void map_incremental()
         }
     }
 
+    // Points that actually pass the per-voxel competition above -- i.e. the
+    // real, incremental growth of the map this scan, already deduplicated
+    // against what's already there (unlike a keyframe-gated raw scan, which
+    // still has to be re-voxelized downstream against overlap). Published
+    // before insertion: this is what's *about* to be added, not a re-read of
+    // the tree afterward, so it can't reflect any further dedup
+    // ikdtree.Add_Points(..., true) does internally on insert.
+    if (pubMapIncrement && (pubMapIncrement->get_subscription_count() > 0)) {
+        PointCloudXYZI increment_cloud;
+        increment_cloud.points.reserve(PointToAdd.size() + PointNoNeedDownsample.size());
+        increment_cloud.points.insert(increment_cloud.points.end(), PointToAdd.begin(), PointToAdd.end());
+        increment_cloud.points.insert(increment_cloud.points.end(), PointNoNeedDownsample.begin(), PointNoNeedDownsample.end());
+        // pcl::toROSMsg reads width/height directly, not points.size() -- unset
+        // (left at their default-constructed value) would size the message wrong.
+        increment_cloud.width = increment_cloud.points.size();
+        increment_cloud.height = 1;
+        increment_cloud.is_dense = true;
+        sensor_msgs::msg::PointCloud2 increment_msg;
+        pcl::toROSMsg(increment_cloud, increment_msg);
+        increment_msg.header.stamp = get_ros_time(lidar_end_time);
+        increment_msg.header.frame_id = camera_init_frame_id;
+        pubMapIncrement->publish(increment_msg);
+    }
+
     double st_time = omp_get_wtime();
     add_point_size = ikdtree.Add_Points(PointToAdd, true);
-    ikdtree.Add_Points(PointNoNeedDownsample, false); 
+    ikdtree.Add_Points(PointNoNeedDownsample, false);
     add_point_size = PointToAdd.size() + PointNoNeedDownsample.size();
     kdtree_incremental_time = omp_get_wtime() - st_time;
 }
@@ -1038,6 +1062,8 @@ public:
         pubLaserCloudFull_body_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(topic_prefix + "cloud_registered_body", 20);
         pubLaserCloudEffect_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(topic_prefix + "cloud_effected", 20);
         pubLaserCloudMap_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(topic_prefix + "Laser_map", 20);
+        // Real per-scan growth of the persistent map -- see map_incremental().
+        pubMapIncrement_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(topic_prefix + "map_increment", 20);
         pubOdomAftMapped_ = this->create_publisher<nav_msgs::msg::Odometry>(topic_prefix + "Odometry", 20);
         pubPath_ = this->create_publisher<nav_msgs::msg::Path>(topic_prefix + "path", 20);
         tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -1175,7 +1201,7 @@ private:
 
             /*** add the feature points to map kdtree ***/
             t3 = omp_get_wtime();
-            map_incremental();
+            map_incremental(pubMapIncrement_);
             t5 = omp_get_wtime();
             
             /******* Publish points *******/
@@ -1240,6 +1266,7 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudFull_body_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudEffect_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudMap_;
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubMapIncrement_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pubOdomAftMapped_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pubPath_;
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr sub_imu_;
