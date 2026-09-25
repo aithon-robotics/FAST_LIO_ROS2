@@ -68,10 +68,11 @@ def generate_launch_description():
 
     )
     # No static TF for rslio_camera_init/rslio_lidar here anymore — the base_link/
-    # fmu_base_link mount correction (Fairy: yaw +90deg, roll -45deg from base_link,
-    # 28cm back / 24cm up) lives in atn_startup's
-    # state_estimation_robosense_fastlio.launch.py, parented on "rslio_lidar" (the
-    # frame this node actually publishes per laserMapping.cpp's output_prefix logic).
+    # fmu_base_link mount correction lives in atn_startup's
+    # state_estimation_robosense_fastlio.launch.py, generated from the
+    # atn_hummel_description mount profile (Fairy mount: see
+    # config/mounts/latest.yaml there), parented on "rslio_lidar" (the frame this
+    # node actually publishes per laserMapping.cpp's output_prefix logic).
 
     rviz_node = Node(
         package='rviz2',
