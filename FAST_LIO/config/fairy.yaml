@@ -1,17 +1,19 @@
 /**:
     ros__parameters:
+        output_prefix: "rslio"   # Prefix for all output topics (/<prefix>/...) and frame IDs (<prefix>_camera_init, <prefix>_lidar)
+
         common:
-            lid_topic:  "/livox/lidar"
-            imu_topic:  "/livox/imu"
+            lid_topic:  "/rslidar_points"
+            imu_topic:  "/rslidar_imu_data"
             time_sync_en: false         # ONLY turn on when external time synchronization is really not possible
             time_offset_lidar_to_imu: 0.0 # Time offset between lidar and IMU calibrated by other algorithms, e.g. LI-Init (can be found in README).
                                         # This param will take effect no matter what time_sync_en is. So if the time offset is not known exactly, please set as 0.0
 
         preprocess:
-            lidar_type: 4                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR, 3 for ouster LiDAR, 
-            scan_line:  64
+            lidar_type: 6                # 6 for RoboSense Fairy96 (rslidar XYZIRT: ring + timestamp in seconds)
+            scan_line:  48 #96
             blind: 2.0
-            timestamp_unit: 3
+            timestamp_unit: 0            # 0: seconds
             scan_rate: 10
 
         mapping:
@@ -22,11 +24,10 @@
             fov_degree:    360.0
             det_range:     200.0
             extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
-            # IMU is co-located inside the MID360 — identity rotation, small translation.
-            extrinsic_T: [ -0.011, -0.02329, 0.04412 ]   # lidar position in the IMU frame (FAST-LIO convention, see laserMapping.cpp: pos_lid = pos + rot*offset_T_L_I). Livox MID360 manual: IMU at (0.011, 0.02329, -0.04412) m in the lidar frame -> inverted here; same value as hku-mars/FAST_LIO config/mid360.yaml
-            extrinsic_R: [ 1., 0., 0.,
-                           0., 1., 0.,
-                           0., 0., 1.]
+            extrinsic_T: [ -0.013567, -0.007979, -0.004895 ]   # lidar pose in the IMU frame (FAST-LIO convention); inverse of the Fairy factory IMU offset (DIFOP) = rslidar imu entry of the atn_hummel_description mount profiles. rslidar_sdk publishes the IMU raw (no calibration applied).
+            extrinsic_R: [ 0.999946, -0.010368, -0.000194,
+                          0.010368,  0.99994,   0.003519,
+                          0.000158, -0.003521,  0.999994 ]
 
 
         publish:
@@ -35,13 +36,12 @@
             dense_publish_en: false       # false: low down the points number in a global-frame point clouds scan.
             scan_bodyframe_pub_en: false  # true: output the point cloud scans in IMU-body-frame
 
-        # when you use docker, you should enter the absolute path of in docker container
-        map_file_path: "/root/ros2_ws/src/FAST_LIO/PCD/result.pcd" 
+        map_file_path: "/home/atn/maps/fast_lio_map.pcd"
         pcd_save:
-            pcd_save_en: false
-            interval: -1                 # how many LiDAR frames saved in each pcd file; 
+            pcd_save_en: true            # save map to map_file_path on exit (timestamped filename)
+            interval: -1                 # how many LiDAR frames saved in each pcd file;
                                         # -1 : all frames will be saved in ONE pcd file, may lead to memory crash when having too much frames.
-        
+
         traj_save:
-            traj_save_en: false
-            traj_file_path: "/root/ros2_ws/src/FAST_LIO/traj/trajectory.txt" # when you use docker, you should enter the absolute path of in docker container
+            traj_save_en: true
+            traj_file_path: "/home/atn/maps/traj/trajectory.txt"

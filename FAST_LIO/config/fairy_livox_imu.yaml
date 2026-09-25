@@ -1,17 +1,17 @@
 /**:
     ros__parameters:
         common:
-            lid_topic:  "/livox/lidar"
+            lid_topic:  "/rslidar_points"
             imu_topic:  "/livox/imu"
             time_sync_en: false         # ONLY turn on when external time synchronization is really not possible
             time_offset_lidar_to_imu: 0.0 # Time offset between lidar and IMU calibrated by other algorithms, e.g. LI-Init (can be found in README).
                                         # This param will take effect no matter what time_sync_en is. So if the time offset is not known exactly, please set as 0.0
 
         preprocess:
-            lidar_type: 4                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR, 3 for ouster LiDAR, 
-            scan_line:  64
+            lidar_type: 6                # 6 for RoboSense Fairy96 (rslidar XYZIRT: ring + timestamp in seconds)
+            scan_line:  96
             blind: 2.0
-            timestamp_unit: 3
+            timestamp_unit: 0            # 0: seconds
             scan_rate: 10
 
         mapping:
@@ -22,11 +22,15 @@
             fov_degree:    360.0
             det_range:     200.0
             extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
-            # IMU is co-located inside the MID360 — identity rotation, small translation.
-            extrinsic_T: [ -0.011, -0.02329, 0.04412 ]   # lidar position in the IMU frame (FAST-LIO convention, see laserMapping.cpp: pos_lid = pos + rot*offset_T_L_I). Livox MID360 manual: IMU at (0.011, 0.02329, -0.04412) m in the lidar frame -> inverted here; same value as hku-mars/FAST_LIO config/mid360.yaml
-            extrinsic_R: [ 1., 0., 0.,
-                           0., 1., 0.,
-                           0., 0., 1.]
+            # This node feeds Fairy (rslidar) points through the Livox internal IMU
+            # (lid_topic/imu_topic above), so laserMapping.cpp's Lidar_T_wrt_IMU /
+            # Lidar_R_wrt_IMU (extrinsic_T/R = lidar pose in the IMU frame) is the
+            # CAD Fairy pose expressed in the Livox-IMU frame -- see PR description
+            # for the total-station/hand-eye validation of this mount pose.
+            extrinsic_T: [-0.377334, -0.023790, -0.249214]
+            extrinsic_R: [ 0.0,  0.707107, -0.707107,
+                           1.0,  0.0,       0.0,
+                           0.0, -0.707107, -0.707107]
 
 
         publish:
