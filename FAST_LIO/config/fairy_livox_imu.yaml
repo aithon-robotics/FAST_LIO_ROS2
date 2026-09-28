@@ -26,12 +26,13 @@
             # (lid_topic/imu_topic above), so laserMapping.cpp's Lidar_T_wrt_IMU /
             # Lidar_R_wrt_IMU (extrinsic_T/R = lidar pose in the IMU frame) is the
             # CAD Fairy pose expressed in the Livox-IMU frame, generated from the
-            # atn_hummel_description mount profile "current" (valid from 2026-09-15,
-            # Fairy roll 47.45 deg).
-            extrinsic_T: [-0.378017, -0.023790, -0.248501]
-            extrinsic_R: [ 0.000000,  0.676233, -0.736687,
+            # atn_hummel_description mount profile "fairy60" (valid from
+            # 2026-09-28 10:55:00+02:00, Fairy roll 61 deg: nominal 60 deg
+            # bracket, measured from the 2026-09-28 flight).
+            extrinsic_T: [-0.381203, -0.023790, -0.244079]
+            extrinsic_R: [ 0.000000,  0.484810, -0.874620,
                            1.000000,  0.000000,  0.000000,
-                           0.000000, -0.736687, -0.676233]
+                           0.000000, -0.874620, -0.484810]
 
 
         publish:
