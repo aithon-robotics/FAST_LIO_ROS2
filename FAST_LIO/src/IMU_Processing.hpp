@@ -46,6 +46,7 @@ class ImuProcess
   void set_acc_cov(const V3D &scaler);
   void set_gyr_bias_cov(const V3D &b_g);
   void set_acc_bias_cov(const V3D &b_a);
+  void set_gravity_align(bool enable, const M3D &base_R_wrt_imu);
   Eigen::Matrix<double, 12, 12> Q;
   void Process(const MeasureGroup &meas,  esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, PointCloudXYZI::Ptr pcl_un_);
 
@@ -70,6 +71,8 @@ class ImuProcess
   vector<M3D>    v_rot_pcl_;
   M3D Lidar_R_wrt_IMU;
   V3D Lidar_T_wrt_IMU;
+  M3D Base_R_wrt_IMU;
+  bool   gravity_align_ = false;
   V3D mean_acc;
   V3D mean_gyr;
   V3D angvel_last;
@@ -95,6 +98,7 @@ ImuProcess::ImuProcess()
   angvel_last     = Zero3d;
   Lidar_T_wrt_IMU = Zero3d;
   Lidar_R_wrt_IMU = Eye3d;
+  Base_R_wrt_IMU  = Eye3d;
   last_imu_.reset(new sensor_msgs::msg::Imu());
 }
 
@@ -153,6 +157,12 @@ void ImuProcess::set_acc_bias_cov(const V3D &b_a)
   cov_bias_acc = b_a;
 }
 
+void ImuProcess::set_gravity_align(bool enable, const M3D &base_R_wrt_imu)
+{
+  gravity_align_ = enable;
+  Base_R_wrt_IMU = base_R_wrt_imu;
+}
+
 void ImuProcess::IMU_init(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, int &N)
 {
   /** 1. initializing the gravity, gyro bias, acc and gyro covariance
@@ -190,7 +200,21 @@ void ImuProcess::IMU_init(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 
     N ++;
   }
   state_ikfom init_state = kf_state.get_x();
-  init_state.grav = S2(- mean_acc / mean_acc.norm() * G_m_s2);
+  if (gravity_align_)
+  {
+    // World frame = gravity-aligned, x along the base frame's heading at init:
+    // base roll/pitch from the measured "up" (mean specific force), yaw = 0.
+    const V3D up_b = (Base_R_wrt_IMU.transpose() * mean_acc).normalized();
+    const double roll  = atan2(up_b(1), up_b(2));
+    const double pitch = atan2(-up_b(0), sqrt(up_b(1) * up_b(1) + up_b(2) * up_b(2)));
+    const M3D R_w_base = (Eigen::AngleAxisd(pitch, V3D::UnitY()) * Eigen::AngleAxisd(roll, V3D::UnitX())).toRotationMatrix();
+    init_state.rot  = SO3(R_w_base * Base_R_wrt_IMU.transpose());
+    init_state.grav = S2(- (init_state.rot * mean_acc) / mean_acc.norm() * G_m_s2);
+  }
+  else
+  {
+    init_state.grav = S2(- mean_acc / mean_acc.norm() * G_m_s2);
+  }
   
   //state_inout.rot = Eye3d; // Exp(mean_acc.cross(V3D(0, 0, -1 / scale_gravity)));
   init_state.bg  = mean_gyr;
@@ -362,6 +386,14 @@ void ImuProcess::Process(const MeasureGroup &meas,  esekfom::esekf<state_ikfom, 
       cov_acc = cov_acc_scale;
       cov_gyr = cov_gyr_scale;
       std::cout << "IMU Initial Done" << std::endl;
+      if (gravity_align_)
+      {
+        const V3D grav = imu_state.grav.get_vect();
+        const M3D R_w_base = imu_state.rot.toRotationMatrix() * Base_R_wrt_IMU;
+        const V3D eul = RotMtoEuler(R_w_base) * 57.29578;
+        std::cout << "Gravity-aligned init: base roll " << eul(0) << " deg, pitch " << eul(1)
+                  << " deg, world gravity " << grav.transpose() << std::endl;
+      }
       // ROS_INFO("IMU Initial Done: Gravity: %.4f %.4f %.4f %.4f; state.bias_g: %.4f %.4f %.4f; acc covarience: %.8f %.8f %.8f; gry covarience: %.8f %.8f %.8f",\
       //          imu_state.grav[0], imu_state.grav[1], imu_state.grav[2], mean_acc.norm(), cov_bias_gyr[0], cov_bias_gyr[1], cov_bias_gyr[2], cov_acc[0], cov_acc[1], cov_acc[2], cov_gyr[0], cov_gyr[1], cov_gyr[2]);
       fout_imu.open(DEBUG_FILE_DIR("imu.txt"),ios::out);

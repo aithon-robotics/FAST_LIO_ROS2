@@ -28,6 +28,9 @@
             extrinsic_R: [ 0.999946, -0.010368, -0.000194,
                           0.010368,  0.99994,   0.003519,
                           0.000158, -0.003521,  0.999994 ]
+            gravity_align: true           # true: world frame (rslio_camera_init) is gravity-aligned at init, x along base_link's heading
+                                          # (needs gravity_align_base_R, passed by atn_startup from the mount profile; disabled without it).
+                                          # false: upstream behaviour, world frame = IMU frame at init (tilted by the boot attitude).
 
 
         publish:
