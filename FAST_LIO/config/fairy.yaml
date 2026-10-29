@@ -28,6 +28,9 @@
             extrinsic_R: [ 0.999946, -0.010368, -0.000194,
                           0.010368,  0.99994,   0.003519,
                           0.000158, -0.003521,  0.999994 ]
+            gravity_align: true           # true: world frame (rslio_camera_init) is gravity-aligned at init, x along base_link's heading
+                                          # (needs gravity_align_base_R, passed by atn_startup from the mount profile; disabled without it).
+                                          # false: upstream behaviour, world frame = IMU frame at init (tilted by the boot attitude).
 
 
         publish:
@@ -38,7 +41,7 @@
 
         map_file_path: "/home/atn/maps/fast_lio_map.pcd"
         pcd_save:
-            pcd_save_en: true            # save map to map_file_path on exit (timestamped filename)
+            pcd_save_en: false           # save map to map_file_path on exit (timestamped filename)
             interval: -1                 # how many LiDAR frames saved in each pcd file;
                                         # -1 : all frames will be saved in ONE pcd file, may lead to memory crash when having too much frames.
 

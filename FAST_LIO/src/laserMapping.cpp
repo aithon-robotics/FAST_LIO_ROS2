@@ -953,6 +953,8 @@ public:
         this->declare_parameter<int>("pcd_save.interval", -1);
         this->declare_parameter<vector<double>>("mapping.extrinsic_T", vector<double>());
         this->declare_parameter<vector<double>>("mapping.extrinsic_R", vector<double>());
+        this->declare_parameter<bool>("mapping.gravity_align", false);
+        this->declare_parameter<vector<double>>("mapping.gravity_align_base_R", vector<double>());
         this->declare_parameter<bool>("traj_save.traj_save_en", false);
         this->declare_parameter<string>("traj_save.traj_file_path", "");
 
@@ -988,6 +990,10 @@ public:
         this->get_parameter_or<int>("pcd_save.interval", pcd_save_interval, -1);
         this->get_parameter_or<vector<double>>("mapping.extrinsic_T", extrinT, vector<double>());
         this->get_parameter_or<vector<double>>("mapping.extrinsic_R", extrinR, vector<double>());
+        bool gravity_align;
+        vector<double> gravityBaseR;
+        this->get_parameter_or<bool>("mapping.gravity_align", gravity_align, false);
+        this->get_parameter_or<vector<double>>("mapping.gravity_align_base_R", gravityBaseR, vector<double>());
         this->get_parameter_or<bool>("traj_save.traj_save_en", traj_save_en, false);
         this->get_parameter_or<string>("traj_save.traj_file_path", traj_file_path, "");
 
@@ -1022,6 +1028,22 @@ public:
         p_imu->set_acc_cov(V3D(acc_cov, acc_cov, acc_cov));
         p_imu->set_gyr_bias_cov(V3D(b_gyr_cov, b_gyr_cov, b_gyr_cov));
         p_imu->set_acc_bias_cov(V3D(b_acc_cov, b_acc_cov, b_acc_cov));
+
+        // Base frame orientation in the IMU frame (row-major, same convention as
+        // extrinsic_R): sets the yaw of the gravity-aligned world frame. Required:
+        // the caller's odom -> camera_init TF assumes the alignment happened iff a
+        // valid rotation was given, so without one fall back to upstream behaviour.
+        M3D Base_R_wrt_IMU(Eye3d);
+        if (gravityBaseR.size() == 9)
+            Base_R_wrt_IMU << MAT_FROM_ARRAY(gravityBaseR);
+        if (gravity_align && (gravityBaseR.size() != 9 ||
+            !(Base_R_wrt_IMU * Base_R_wrt_IMU.transpose()).isApprox(Eye3d, 1e-4) || Base_R_wrt_IMU.determinant() < 0.0))
+        {
+            RCLCPP_WARN(this->get_logger(), "mapping.gravity_align needs a valid rotation in mapping.gravity_align_base_R: gravity alignment disabled");
+            gravity_align = false;
+        }
+        p_imu->set_gravity_align(gravity_align, Base_R_wrt_IMU);
+        RCLCPP_INFO(this->get_logger(), "gravity_align %d", gravity_align);
 
         fill(epsi, epsi+23, 0.001);
         kf.init_dyn_share(get_f, df_dx, df_dw, h_share_model, NUM_MAX_ITERATIONS, epsi);

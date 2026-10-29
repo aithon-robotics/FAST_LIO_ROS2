@@ -22,6 +22,11 @@ def generate_launch_description():
     cube_side_length_param = LaunchConfiguration('cube_side_length', default='1000.0')            # double
     runtime_pos_log_enable_param = LaunchConfiguration('runtime_pos_log_enable', default='false')  # bool
     blind_distance = LaunchConfiguration('preprocess.blind', default='0.9')  # double
+    # base_link orientation in the IMU frame (row-major 3x3), for mapping.gravity_align;
+    # atn_startup computes it from the mount profile. The all-zero default is not a
+    # rotation, so FAST-LIO keeps upstream (non-aligned) behaviour unless it is given.
+    gravity_align_base_R = LaunchConfiguration(
+        'gravity_align_base_R', default='[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]')
 
     default_config_path = os.path.join(package_path, 'config', 'fairy.yaml')
     default_rviz_config_path = os.path.join(
@@ -62,7 +67,8 @@ def generate_launch_description():
                     'filter_size_map': filter_size_map_param,
                     'cube_side_length': cube_side_length_param,
                     'runtime_pos_log_enable': runtime_pos_log_enable_param,
-                    'preprocess.blind': blind_distance}],
+                    'preprocess.blind': blind_distance,
+                    'mapping.gravity_align_base_R': gravity_align_base_R}],
         output='screen',
         namespace='rslio',
 
